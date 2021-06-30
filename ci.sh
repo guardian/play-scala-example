@@ -1,1 +1,2 @@
-echo "New hello message"
+sbt compile
+
