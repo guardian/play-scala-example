@@ -1,1 +1,1 @@
-echo "Hello there"
+echo "New hello message"
