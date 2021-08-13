@@ -1,0 +1,15 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: Play Scala Example Stack
+Parameters:
+  Stage:
+    Type: String
+Resources:
+  ThorwawayTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: ThrowawayTableDoNotUse
+      AttributeDefinitions:
+        - { AttributeName: id, AttributeType: S }
+      KeySchema:
+        - { AttributeName: id, KeyType: HASH }
+      ProvisionedThroughput: { ReadCapacityUnits: 5, WriteCapacityUnits: 5 }
