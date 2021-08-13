@@ -4,4 +4,4 @@ set -e
 
 echo "Hello there"
 
-sbt clean compile test riffRaffNotifyTeamcity
+sbt clean compile riffRaffNotifyTeamcity
