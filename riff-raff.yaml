@@ -1,0 +1,11 @@
+regions:
+  - eu-west-1
+stacks:
+  - playground
+deployments:
+  cloudformation:
+    type: cloud-formation
+    app: play-scala-example
+    parameters:
+      cloudFormationStackByTags: true
+      templatePath: cfn.yaml
