@@ -3,6 +3,21 @@ Description: Play Scala Example Stack
 Parameters:
   Stage:
     Type: String
+  AMI:
+    Description: AMI id from Amigo using AMI with tag editorial-tools-xenial-java8
+    Type: String
+  Stack:
+    Description: Stack name
+    Type: String
+    Default: playground
+  VpcId:
+    Description: ID of the VPC onto which to launch the application eg. vpc-1234abcd
+    Type: AWS::EC2::VPC::Id
+    Default: vpc-381fa95d
+  PrivateVpcSubnets:
+    Description: Subnets to use in VPC for private EC2 instances eg. subnet-abcd1234
+    Type: List<AWS::EC2::Subnet::Id>
+    Default: subnet-c2620fa7,subnet-2a37bd5d,subnet-2967c870
 Resources:
   ThorwawayTable:
     Type: AWS::DynamoDB::Table
@@ -13,3 +28,129 @@ Resources:
       KeySchema:
         - { AttributeName: id, KeyType: HASH }
       ProvisionedThroughput: { ReadCapacityUnits: 5, WriteCapacityUnits: 5 }
+  AdminServerInstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Path: /
+      Roles:
+        - !Ref 'AdminRole'
+  AdminRole:
+    Type: AWS::IAM::Role
+    Properties:
+      ManagedPolicyArns:
+        - Fn::ImportValue: "guardian-ec2-for-ssm-GuardianEC2ForSSMPolicy"
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - ec2.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Path: /
+  GetDistributablesPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: GetDistributablesPolicy
+      PolicyDocument:
+        Statement:
+          - Effect: Allow
+            Action:
+              - s3:GetObject
+            Resource:
+              - arn:aws:s3:::composer-dist/*
+      Roles:
+        - !Ref 'AdminRole'
+  LoadBalancer:
+    Type: AWS::ElasticLoadBalancing::LoadBalancer
+    Properties:
+      Scheme: internal
+      CrossZone: true
+      SecurityGroups:
+        - !GetAtt 'LoadBalancerSecurityGroup.GroupId'
+      Subnets: !Ref 'PrivateVpcSubnets'
+      Listeners:
+        - LoadBalancerPort: '8080'
+          InstancePort: '8080'
+          Protocol: HTTP
+        - LoadBalancerPort: '80'
+          InstancePort: '8080'
+          Protocol: HTTP
+        - LoadBalancerPort: '443'
+          InstancePort: '8080'
+          Protocol: HTTPS
+          SSLCertificateId: !FindInMap [!Ref Stack, !Ref Stage, ImportCertificateArn]
+      HealthCheck:
+        Target: HTTP:8080/management/healthcheck
+        HealthyThreshold: '2'
+        UnhealthyThreshold: '2'
+        Interval: '10'
+        Timeout: '5'
+      Tags:
+        - Key: Stage
+          Value: !Ref 'Stage'
+        - Key: Stack
+          Value: !Ref 'Stack'
+        - Key: App
+          Value: play-scala-example
+  LoadBalancerSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: play-scala-example application load balancer
+      VpcId: !Ref 'VpcId'
+      SecurityGroupIngress:
+        # PUNTERS
+        - IpProtocol: tcp
+          FromPort: '443'
+          ToPort: '443'
+          CidrIp: 0.0.0.0/0
+  ServerSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Application servers
+      VpcId: !Ref 'VpcId'
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 8080
+          ToPort: 8080
+          SourceSecurityGroupId: !Ref 'LoadBalancerSecurityGroup'
+
+  AutoScalingGroup:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    Properties:
+      VPCZoneIdentifier: !Ref 'PrivateVpcSubnets'
+      LaunchConfigurationName: !Ref 'LaunchConfig'
+      MinSize: !FindInMap [!Ref 'Stack', !Ref 'Stage', MinSize]
+      MaxSize: !FindInMap [!Ref 'Stack', !Ref 'Stage', MaxSize]
+      Cooldown: '180'
+      HealthCheckType: ELB
+      HealthCheckGracePeriod: 300
+      LoadBalancerNames:
+        - !Ref 'LoadBalancer'
+      Tags:
+        - Key: Stage
+          Value: !Ref 'Stage'
+          PropagateAtLaunch: 'true'
+        - Key: Stack
+          Value: !FindInMap [!Ref 'Stack', !Ref 'Stage', StackName]
+          PropagateAtLaunch: 'true'
+        - Key: App
+          Value: play-scala-example
+          PropagateAtLaunch: 'true'
+  LaunchConfig:
+    Type: AWS::AutoScaling::LaunchConfiguration
+    Properties:
+      ImageId: !Ref 'AMI'
+      SecurityGroups:
+        - !Ref 'ServerSecurityGroup'
+      InstanceType: !FindInMap [!Ref 'Stack', !Ref 'Stage', InstanceType]
+      IamInstanceProfile: !Ref 'AdminServerInstanceProfile'
+      MetadataOptions:
+        HttpTokens: required
+      UserData:
+        Fn::Base64:
+          Fn::Sub:
+            - |
+              #!/bin/bash -ev
+              aws s3 cp s3://developer-playground-dist/${Stack}/${Stage}/play-scala-example/play-scala-example.deb /tmp/play-scala-example.deb
+              dpkg -i /tmp/play-scala-example.deb
