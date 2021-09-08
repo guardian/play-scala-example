@@ -13,4 +13,3 @@ deployments:
     type: autoscaling
     parameters:
       bucket: developer-playground-dist
-

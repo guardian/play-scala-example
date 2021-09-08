@@ -50,8 +50,6 @@ Resources:
   AdminRole:
     Type: AWS::IAM::Role
     Properties:
-      ManagedPolicyArns:
-        - Fn::ImportValue: "guardian-ec2-for-ssm-GuardianEC2ForSSMPolicy"
       AssumeRolePolicyDocument:
         Statement:
           - Effect: Allow
