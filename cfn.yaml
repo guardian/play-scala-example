@@ -14,11 +14,11 @@ Parameters:
   VpcId:
     Description: ID of the VPC onto which to launch the application eg. vpc-1234abcd
     Type: AWS::EC2::VPC::Id
-    Default: vpc-381fa95d
+    Default: vpc-0ec339f99fadd9614
   PrivateVpcSubnets:
     Description: Subnets to use in VPC for private EC2 instances eg. subnet-abcd1234
     Type: List<AWS::EC2::Subnet::Id>
-    Default: subnet-c2620fa7,subnet-2a37bd5d,subnet-2967c870
+    Default: subnet-083830951859c59c4,subnet-031be8c780ff7aa4a,subnet-0160e44176df0a013
 Resources:
   ThorwawayTable:
     Type: AWS::DynamoDB::Table
