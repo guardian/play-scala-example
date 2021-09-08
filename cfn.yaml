@@ -6,6 +6,7 @@ Parameters:
   AMI:
     Description: AMI id from Amigo using AMI with tag editorial-tools-xenial-java8
     Type: String
+    Default: ami-0a81386eb9eeb7a49
   Stack:
     Description: Stack name
     Type: String
