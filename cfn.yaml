@@ -20,6 +20,18 @@ Parameters:
     Type: List<AWS::EC2::Subnet::Id>
     Default: subnet-083830951859c59c4,subnet-031be8c780ff7aa4a,subnet-0160e44176df0a013
 Resources:
+  Certificate:
+    Type: AWS::CertificateManager::Certificate
+    Properties:
+      ValidationMethod: DNS
+      DomainName: 'play-scala-example.gutools.co.uk'
+      Tags:
+        - Key: Stage
+          Value: !Ref Stage
+        - Key: Stack
+          Value: !Ref Stack
+        - Key: App
+          Value: play-scala-example
   ThorwawayTable:
     Type: AWS::DynamoDB::Table
     Properties:
@@ -80,7 +92,7 @@ Resources:
         - LoadBalancerPort: '443'
           InstancePort: '8080'
           Protocol: HTTPS
-          SSLCertificateId: !FindInMap [!Ref Stack, !Ref Stage, ImportCertificateArn]
+          SSLCertificateId: !Ref 'Certificate'
       HealthCheck:
         Target: HTTP:8080/management/healthcheck
         HealthyThreshold: '2'
@@ -121,8 +133,8 @@ Resources:
     Properties:
       VPCZoneIdentifier: !Ref 'PrivateVpcSubnets'
       LaunchConfigurationName: !Ref 'LaunchConfig'
-      MinSize: !FindInMap [!Ref 'Stack', !Ref 'Stage', MinSize]
-      MaxSize: !FindInMap [!Ref 'Stack', !Ref 'Stage', MaxSize]
+      MinSize: 1
+      MaxSize: 2
       Cooldown: '180'
       HealthCheckType: ELB
       HealthCheckGracePeriod: 300
@@ -133,7 +145,7 @@ Resources:
           Value: !Ref 'Stage'
           PropagateAtLaunch: 'true'
         - Key: Stack
-          Value: !FindInMap [!Ref 'Stack', !Ref 'Stage', StackName]
+          Value: !Ref 'Stack'
           PropagateAtLaunch: 'true'
         - Key: App
           Value: play-scala-example
@@ -144,7 +156,7 @@ Resources:
       ImageId: !Ref 'AMI'
       SecurityGroups:
         - !Ref 'ServerSecurityGroup'
-      InstanceType: !FindInMap [!Ref 'Stack', !Ref 'Stage', InstanceType]
+      InstanceType: 't3.small'
       IamInstanceProfile: !Ref 'AdminServerInstanceProfile'
       MetadataOptions:
         HttpTokens: required
