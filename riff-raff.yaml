@@ -9,3 +9,8 @@ deployments:
     parameters:
       cloudFormationStackByTags: true
       templatePath: cfn.yaml
+  play-scala-example:
+    type: autoscaling
+    parameters:
+      bucket: developer-playground-dist
+
