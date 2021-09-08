@@ -154,3 +154,4 @@ Resources:
               #!/bin/bash -ev
               aws s3 cp s3://developer-playground-dist/${Stack}/${Stage}/play-scala-example/play-scala-example.deb /tmp/play-scala-example.deb
               dpkg -i /tmp/play-scala-example.deb
+            - {Stack: !Ref 'Stack', Stage: !Ref 'Stage'}
